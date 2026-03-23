@@ -20,6 +20,11 @@ final class FeedInspectorViewController: NSViewController, Inspector {
 	@IBOutlet var newArticleNotificationsEnabledCheckBox: NSButton!
 	@IBOutlet var readerViewAlwaysEnabledCheckBox: NSButton?
 
+	private var categoryFilterLabel: NSTextField?
+	private var categoryFilterPopUp: NSPopUpButton?
+	private var categoryFilterTermsLabel: NSTextField?
+	private var categoryFilterTermsField: NSTextField?
+
 	private var feed: Feed? {
 		didSet {
 			if feed != oldValue {
@@ -48,6 +53,7 @@ final class FeedInspectorViewController: NSViewController, Inspector {
 	// MARK: NSViewController
 
 	override func viewDidLoad() {
+		setupCategoryFilterUI()
 		updateUI()
 		NotificationCenter.default.addObserver(self, selector: #selector(imageDidBecomeAvailable(_:)), name: .imageDidBecomeAvailable, object: nil)
 		NotificationCenter.default.addObserver(self, selector: #selector(updateUI), name: .DidUpdateFeedPreferencesFromContextMenu, object: nil)
@@ -59,6 +65,7 @@ final class FeedInspectorViewController: NSViewController, Inspector {
 
 	override func viewDidDisappear() {
 		renameFeedIfNecessary()
+		saveCategoryFilterTermsIfNecessary()
 	}
 
 	// MARK: Actions
@@ -118,7 +125,11 @@ final class FeedInspectorViewController: NSViewController, Inspector {
 extension FeedInspectorViewController: NSTextFieldDelegate {
 
 	func controlTextDidEndEditing(_ note: Notification) {
-		renameFeedIfNecessary()
+		if let textField = note.object as? NSTextField, textField === categoryFilterTermsField {
+			saveCategoryFilterTermsIfNecessary()
+		} else {
+			renameFeedIfNecessary()
+		}
 	}
 }
 
@@ -139,6 +150,7 @@ private extension FeedInspectorViewController {
 		updateFeedURL()
 		updateNewArticleNotificationsEnabled()
 		updateReaderViewAlwaysEnabled()
+		updateCategoryFilter()
 		windowTitle = feed?.nameForDisplay ?? NSLocalizedString("Feed Inspector", comment: "Feed Inspector window title")
 		readerViewAlwaysEnabledCheckBox?.isEnabled = true
 		view.needsLayout = true
@@ -223,6 +235,100 @@ private extension FeedInspectorViewController {
 			} catch {
 				presentError(error)
 			}
+		}
+	}
+
+	// MARK: - Category Filter UI
+
+	func setupCategoryFilterUI() {
+		guard let readerViewCheckBox = readerViewAlwaysEnabledCheckBox else {
+			return
+		}
+
+		let separator = NSBox()
+		separator.boxType = .separator
+		separator.translatesAutoresizingMaskIntoConstraints = false
+		view.addSubview(separator)
+
+		let label = NSTextField(labelWithString: NSLocalizedString("Category Filter:", comment: "Category filter label in feed inspector"))
+		label.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .semibold)
+		label.translatesAutoresizingMaskIntoConstraints = false
+		view.addSubview(label)
+		categoryFilterLabel = label
+
+		let popUp = NSPopUpButton(frame: .zero, pullsDown: false)
+		popUp.translatesAutoresizingMaskIntoConstraints = false
+		popUp.addItems(withTitles: [
+			NSLocalizedString("None", comment: "Category filter type: no filtering"),
+			NSLocalizedString("Include only", comment: "Category filter type: include only matching"),
+			NSLocalizedString("Exclude", comment: "Category filter type: exclude matching")
+		])
+		popUp.target = self
+		popUp.action = #selector(categoryFilterTypeChanged(_:))
+		view.addSubview(popUp)
+		categoryFilterPopUp = popUp
+
+		let termsLabel = NSTextField(labelWithString: NSLocalizedString("Categories (comma-separated):", comment: "Category filter terms label"))
+		termsLabel.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+		termsLabel.translatesAutoresizingMaskIntoConstraints = false
+		view.addSubview(termsLabel)
+		categoryFilterTermsLabel = termsLabel
+
+		let termsField = NSTextField()
+		termsField.translatesAutoresizingMaskIntoConstraints = false
+		termsField.placeholderString = NSLocalizedString("e.g. space, Podcast, AI", comment: "Category filter terms placeholder")
+		termsField.delegate = self
+		termsField.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+		view.addSubview(termsField)
+		categoryFilterTermsField = termsField
+
+		NSLayoutConstraint.activate([
+			separator.topAnchor.constraint(equalTo: readerViewCheckBox.bottomAnchor, constant: 12),
+			separator.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+			separator.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+
+			label.topAnchor.constraint(equalTo: separator.bottomAnchor, constant: 8),
+			label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+
+			popUp.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 4),
+			popUp.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 18),
+			popUp.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+
+			termsLabel.topAnchor.constraint(equalTo: popUp.bottomAnchor, constant: 8),
+			termsLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+
+			termsField.topAnchor.constraint(equalTo: termsLabel.bottomAnchor, constant: 4),
+			termsField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+			termsField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+		])
+	}
+
+	@objc func categoryFilterTypeChanged(_ sender: NSPopUpButton) {
+		feed?.categoryFilterType = sender.indexOfSelectedItem
+		updateCategoryFilterFieldsVisibility()
+	}
+
+	func updateCategoryFilter() {
+		let filterType = feed?.categoryFilterType ?? 0
+		categoryFilterPopUp?.selectItem(at: filterType)
+		categoryFilterTermsField?.stringValue = feed?.categoryFilterTerms ?? ""
+		updateCategoryFilterFieldsVisibility()
+	}
+
+	func updateCategoryFilterFieldsVisibility() {
+		let isEnabled = (categoryFilterPopUp?.indexOfSelectedItem ?? 0) != 0
+		categoryFilterTermsLabel?.isHidden = !isEnabled
+		categoryFilterTermsField?.isHidden = !isEnabled
+	}
+
+	func saveCategoryFilterTermsIfNecessary() {
+		guard let termsField = categoryFilterTermsField else {
+			return
+		}
+		let newTerms = termsField.stringValue.trimmingCharacters(in: .whitespaces)
+		let currentTerms = feed?.categoryFilterTerms ?? ""
+		if newTerms != currentTerms {
+			feed?.categoryFilterTerms = newTerms.isEmpty ? nil : newTerms
 		}
 	}
 }

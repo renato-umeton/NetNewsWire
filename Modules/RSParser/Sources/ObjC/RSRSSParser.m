@@ -177,6 +177,9 @@ static const NSInteger kEnclosureLength = 10;
 static const char *kLanguage = "language";
 static const NSInteger kLanguageLength = 9;
 
+static const char *kCategory = "category";
+static const NSInteger kCategoryLength = 9;
+
 #pragma mark - Parsing
 
 - (void)parse {
@@ -263,6 +266,14 @@ static const NSInteger kLanguageLength = 9;
 		if ([self stringIsProbablyAURLOrRelativePath:guid]) {
 			self.currentArticle.permalink = [self urlString:guid];
 		}
+	}
+}
+
+- (void)addCategory {
+
+	NSString *category = [self currentString];
+	if (!RSParserStringIsEmpty(category)) {
+		[self.currentArticle addCategory:category];
 	}
 }
 
@@ -398,6 +409,9 @@ static const NSInteger kLanguageLength = 9;
 	}
 	else if (RSSAXEqualTags(localName, kEnclosure, kEnclosureLength)) {
 		[self addEnclosure];
+	}
+	else if (RSSAXEqualTags(localName, kCategory, kCategoryLength)) {
+		[self addCategory];
 	}
 }
 

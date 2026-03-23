@@ -23,6 +23,8 @@ final class FeedSettingsDatabase: Sendable {
 		case contentHash
 		case newArticleNotificationsEnabled
 		case readerViewAlwaysEnabled
+		case categoryFilterType
+		case categoryFilterTerms
 		case authors
 		case conditionalGetInfoLastModified
 		case conditionalGetInfoEtag
@@ -43,6 +45,8 @@ final class FeedSettingsDatabase: Sendable {
 		let contentHash: String?
 		let newArticleNotificationsEnabled: Bool
 		let readerViewAlwaysEnabled: Bool
+		let categoryFilterType: Int
+		let categoryFilterTerms: String?
 		let authors: [Author]?
 		let conditionalGetInfo: HTTPConditionalGetInfo?
 		let conditionalGetInfoDate: Date?
@@ -62,6 +66,13 @@ final class FeedSettingsDatabase: Sendable {
 		serialDispatchQueue.sync { [database] in
 			database.executeStatements("PRAGMA journal_mode = WAL;")
 			database.runCreateStatements(Self.tableCreationStatements)
+			// Migration: add category filter columns if they don't exist.
+			if !database.columnExists(Column.categoryFilterType.rawValue, inTableWithName: "feedSettings") {
+				database.executeStatements("ALTER TABLE feedSettings ADD COLUMN categoryFilterType INTEGER NOT NULL DEFAULT 0;")
+			}
+			if !database.columnExists(Column.categoryFilterTerms.rawValue, inTableWithName: "feedSettings") {
+				database.executeStatements("ALTER TABLE feedSettings ADD COLUMN categoryFilterTerms TEXT;")
+			}
 		}
 		if !Platform.isRunningUnitTests {
 			vacuum()
@@ -139,6 +150,15 @@ final class FeedSettingsDatabase: Sendable {
 			} else {
 				self.database.executeUpdate("UPDATE feedSettings SET \(name) = NULL WHERE feedURL = ?;", withArgumentsIn: [feedURL])
 			}
+		}
+	}
+
+	// MARK: - Int
+
+	func setInt(_ value: Int, for feedURL: String, column: Column) {
+		let name = column.rawValue
+		serialDispatchQueue.async {
+			self.database.executeUpdate("UPDATE feedSettings SET \(name) = ? WHERE feedURL = ?;", withArgumentsIn: [value, feedURL])
 		}
 	}
 
@@ -237,7 +257,7 @@ final class FeedSettingsDatabase: Sendable {
 private extension FeedSettingsDatabase {
 
 	static let tableCreationStatements = """
-	CREATE TABLE IF NOT EXISTS feedSettings (feedURL TEXT PRIMARY KEY, feedID TEXT NOT NULL DEFAULT '', homePageURL TEXT, iconURL TEXT, faviconURL TEXT, editedName TEXT, contentHash TEXT, newArticleNotificationsEnabled INTEGER NOT NULL DEFAULT 0, readerViewAlwaysEnabled INTEGER NOT NULL DEFAULT 0, authors TEXT, conditionalGetInfoLastModified TEXT, conditionalGetInfoEtag TEXT, conditionalGetInfoDate REAL, cacheControlInfoDateCreated REAL, cacheControlInfoMaxAge REAL, externalID TEXT, folderRelationship TEXT, lastCheckDate REAL);
+	CREATE TABLE IF NOT EXISTS feedSettings (feedURL TEXT PRIMARY KEY, feedID TEXT NOT NULL DEFAULT '', homePageURL TEXT, iconURL TEXT, faviconURL TEXT, editedName TEXT, contentHash TEXT, newArticleNotificationsEnabled INTEGER NOT NULL DEFAULT 0, readerViewAlwaysEnabled INTEGER NOT NULL DEFAULT 0, categoryFilterType INTEGER NOT NULL DEFAULT 0, categoryFilterTerms TEXT, authors TEXT, conditionalGetInfoLastModified TEXT, conditionalGetInfoEtag TEXT, conditionalGetInfoDate REAL, cacheControlInfoDateCreated REAL, cacheControlInfoMaxAge REAL, externalID TEXT, folderRelationship TEXT, lastCheckDate REAL);
 	"""
 
 	func row(from resultSet: FMResultSet) -> Row {
@@ -284,6 +304,8 @@ private extension FeedSettingsDatabase {
 			contentHash: resultSet.string(forColumn: Column.contentHash.rawValue),
 			newArticleNotificationsEnabled: resultSet.bool(forColumn: Column.newArticleNotificationsEnabled.rawValue),
 			readerViewAlwaysEnabled: resultSet.bool(forColumn: Column.readerViewAlwaysEnabled.rawValue),
+			categoryFilterType: Int(resultSet.int(forColumn: Column.categoryFilterType.rawValue)),
+			categoryFilterTerms: resultSet.string(forColumn: Column.categoryFilterTerms.rawValue),
 			authors: authors,
 			conditionalGetInfo: HTTPConditionalGetInfo(lastModified: lastModified, etag: etag),
 			conditionalGetInfoDate: conditionalGetInfoDate,

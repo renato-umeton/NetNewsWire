@@ -861,7 +861,24 @@ public enum FetchType {
 			return ArticleChanges()
 		}
 
-		return try await updateAsync(feedID: feed.feedID, parsedItems: parsedItems)
+		let articleChanges = try await updateAsync(feedID: feed.feedID, parsedItems: parsedItems)
+
+		// Apply category filter: auto-mark filtered articles as read.
+		if feed.categoryFilterType != 0 {
+			var articlesToMarkRead = Set<Article>()
+			if let newArticles = articleChanges.newArticles {
+				for article in newArticles {
+					if feed.shouldFilterArticle(withTags: article.tags) && !article.status.read {
+						articlesToMarkRead.insert(article)
+					}
+				}
+			}
+			if !articlesToMarkRead.isEmpty {
+				try await updateAsync(articles: articlesToMarkRead, statusKey: .read, flag: true)
+			}
+		}
+
+		return articleChanges
 	}
 
 	func updateAsync(feedID: String, parsedItems: Set<ParsedItem>, deleteOlder: Bool = true) async throws -> ArticleChanges {

@@ -26,6 +26,7 @@
 @property (nonatomic, nullable) NSString *permalink;
 @property (nonatomic, nullable) NSSet<RSParsedAuthor *> *authors;
 @property (nonatomic, nullable) NSSet<RSParsedEnclosure *> *enclosures;
+@property (nonatomic, nullable) NSSet<NSString *> *categories;
 @property (nonatomic, nullable) NSDate *datePublished;
 @property (nonatomic, nullable) NSDate *dateModified;
 @property (nonatomic, nonnull) NSDate *dateParsed;
@@ -33,6 +34,7 @@
 
 - (void)addEnclosure:(RSParsedEnclosure *_Nonnull)enclosure;
 - (void)addAuthor:(RSParsedAuthor *_Nonnull)author;
+- (void)addCategory:(NSString *_Nonnull)category;
 
 @end
 

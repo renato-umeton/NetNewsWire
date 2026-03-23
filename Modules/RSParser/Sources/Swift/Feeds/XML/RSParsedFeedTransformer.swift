@@ -47,8 +47,9 @@ private extension RSParsedFeedTransformer {
 		let dateModified = parsedArticle.dateModified
 		let authors = parsedAuthors(parsedArticle.authors)
 		let attachments = parsedAttachments(parsedArticle.enclosures)
+		let tags = parsedCategories(parsedArticle.categories)
 
-		return ParsedItem(syncServiceID: nil, uniqueID: uniqueID, feedURL: parsedArticle.feedURL, url: url, externalURL: externalURL, title: title, language: language, contentHTML: contentHTML, contentText: nil, markdown: markdown, summary: nil, imageURL: nil, bannerImageURL: nil, datePublished: datePublished, dateModified: dateModified, authors: authors, tags: nil, attachments: attachments)
+		return ParsedItem(syncServiceID: nil, uniqueID: uniqueID, feedURL: parsedArticle.feedURL, url: url, externalURL: externalURL, title: title, language: language, contentHTML: contentHTML, contentText: nil, markdown: markdown, summary: nil, imageURL: nil, bannerImageURL: nil, datePublished: datePublished, dateModified: dateModified, authors: authors, tags: tags, attachments: attachments)
 	}
 
 	static func parsedAuthors(_ authors: Set<RSParsedAuthor>?) -> Set<ParsedAuthor>? {
@@ -62,6 +63,15 @@ private extension RSParsedFeedTransformer {
 		}
 
 		return transformedAuthors.isEmpty ? nil : Set(transformedAuthors)
+	}
+
+	static func parsedCategories(_ categories: Set<String>?) -> Set<String>? {
+
+		guard let categories, !categories.isEmpty else {
+			return nil
+		}
+
+		return categories
 	}
 
 	static func parsedAttachments(_ enclosures: Set<RSParsedEnclosure>?) -> Set<ParsedAttachment>? {
