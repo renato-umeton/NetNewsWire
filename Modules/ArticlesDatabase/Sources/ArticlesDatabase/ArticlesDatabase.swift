@@ -70,6 +70,10 @@ public struct ArticleChanges: Sendable {
 				Self.logger.debug("ArticlesDatabase: adding markdown column \(accountID, privacy: .public)")
 				database.executeStatements("ALTER TABLE articles add column markdown TEXT;")
 			}
+			if !self.articlesTable.containsColumn("tags", in: database) {
+				Self.logger.debug("ArticlesDatabase: adding tags column \(accountID, privacy: .public)")
+				database.executeStatements("ALTER TABLE articles add column tags TEXT;")
+			}
 			database.executeStatements("CREATE INDEX if not EXISTS articles_searchRowID on articles(searchRowID);")
 			database.executeStatements("DROP TABLE if EXISTS tags;DROP INDEX if EXISTS tags_tagName_index;DROP INDEX if EXISTS articles_feedID_index;DROP INDEX if EXISTS statuses_read_index;DROP TABLE if EXISTS attachments;DROP TABLE if EXISTS attachmentsLookup;")
 		}

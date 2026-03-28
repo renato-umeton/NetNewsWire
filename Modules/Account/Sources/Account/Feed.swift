@@ -160,6 +160,58 @@ import Articles
 		}
 	}
 
+	/// 0 = none (disabled), 1 = include (show only matching), 2 = exclude (hide matching)
+	public var categoryFilterType: Int {
+		get {
+			settings.categoryFilterType
+		}
+		set {
+			settings.categoryFilterType = newValue
+		}
+	}
+
+	/// Comma-separated list of category terms to filter on (case-insensitive).
+	public var categoryFilterTerms: String? {
+		get {
+			settings.categoryFilterTerms
+		}
+		set {
+			settings.categoryFilterTerms = newValue
+		}
+	}
+
+	/// Returns the set of filter terms, lowercased, for matching.
+	public var categoryFilterTermsSet: Set<String> {
+		guard let terms = categoryFilterTerms, !terms.isEmpty else {
+			return []
+		}
+		return Set(terms.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces).lowercased() })
+	}
+
+	/// Returns true if the given tags should be filtered out (auto-marked as read).
+	/// Tags are compared case-insensitively against the filter terms.
+	public func shouldFilterArticle(withTags tags: Set<String>?) -> Bool {
+		guard categoryFilterType != 0 else {
+			return false
+		}
+		let filterTerms = categoryFilterTermsSet
+		guard !filterTerms.isEmpty else {
+			return false
+		}
+
+		let lowercasedTags = Set((tags ?? []).map { $0.lowercased() })
+
+		if categoryFilterType == 1 {
+			// Include: filter out articles that do NOT have any matching tag
+			return lowercasedTags.isDisjoint(with: filterTerms)
+		} else if categoryFilterType == 2 {
+			// Exclude: filter out articles that DO have a matching tag
+			return !lowercasedTags.isDisjoint(with: filterTerms)
+		}
+
+		return false
+	}
+
 	public var externalID: String? {
 		get {
 			settings.externalID

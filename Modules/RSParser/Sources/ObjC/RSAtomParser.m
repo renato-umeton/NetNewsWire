@@ -210,6 +210,12 @@ static const NSInteger kEnclosureLength = 10;
 static const char *kLength = "length";
 static const NSInteger kLengthLength = 7;
 
+static const char *kCategory = "category";
+static const NSInteger kCategoryLength = 9;
+
+static NSString *kTermKey = @"term";
+static NSString *kLabelKey = @"label";
+
 #pragma mark - Parsing
 
 - (void)parse {
@@ -366,6 +372,20 @@ static NSString *daringFireballPermalinkPrefix = @"https://daringfireball.net/";
 	return enclosure;
 }
 
+- (void)addCategory {
+
+	NSDictionary *attributes = self.currentAttributes;
+	// Atom spec: <category term="value" label="optional label"/>
+	// Prefer label (human-readable) over term (machine identifier).
+	NSString *category = attributes[kLabelKey];
+	if (RSParserStringIsEmpty(category)) {
+		category = attributes[kTermKey];
+	}
+	if (!RSParserStringIsEmpty(category)) {
+		[self.currentArticle addCategory:category];
+	}
+}
+
 - (void)addContent {
 
 	self.currentArticle.body = [self currentString];
@@ -453,6 +473,10 @@ static NSString *httpURLPrefix = @"http://";
 
 	else if (RSSAXEqualTags(localName, kLink, kLinkLength)) {
 		[self addLink];
+	}
+
+	else if (RSSAXEqualTags(localName, kCategory, kCategoryLength)) {
+		[self addCategory];
 	}
 
 	else if (RSSAXEqualTags(localName, kPublished, kPublishedLength)) {
@@ -699,6 +723,18 @@ static NSString *httpURLPrefix = @"http://";
 
 	if (RSSAXEqualTags(name, kTitle, kTitleLength)) {
 		return kTitleKey;
+	}
+
+	static const char *kTerm = "term";
+	static const NSInteger kTermLength = 5;
+	if (RSSAXEqualTags(name, kTerm, kTermLength)) {
+		return kTermKey;
+	}
+
+	static const char *kLabelStr = "label";
+	static const NSInteger kLabelStrLength = 6;
+	if (RSSAXEqualTags(name, kLabelStr, kLabelStrLength)) {
+		return kLabelKey;
 	}
 
 	return nil;

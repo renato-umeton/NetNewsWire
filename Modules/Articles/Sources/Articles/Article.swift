@@ -26,9 +26,10 @@ public final class Article: Hashable, Sendable {
 	public let datePublished: Date?
 	public let dateModified: Date?
 	public let authors: Set<Author>?
+	public let tags: Set<String>?
 	public let status: ArticleStatus
 
-	public init(accountID: String, articleID: String?, feedID: String, uniqueID: String, title: String?, contentHTML: String?, contentText: String?, markdown: String?, url: String?, externalURL: String?, summary: String?, imageURL: String?, datePublished: Date?, dateModified: Date?, authors: Set<Author>?, status: ArticleStatus) {
+	public init(accountID: String, articleID: String?, feedID: String, uniqueID: String, title: String?, contentHTML: String?, contentText: String?, markdown: String?, url: String?, externalURL: String?, summary: String?, imageURL: String?, datePublished: Date?, dateModified: Date?, authors: Set<Author>?, tags: Set<String>?, status: ArticleStatus) {
 		self.accountID = accountID
 		self.feedID = feedID
 		self.uniqueID = uniqueID
@@ -43,6 +44,7 @@ public final class Article: Hashable, Sendable {
 		self.datePublished = datePublished
 		self.dateModified = dateModified
 		self.authors = authors
+		self.tags = tags
 		self.status = status
 
 		if let articleID = articleID {
@@ -65,7 +67,7 @@ public final class Article: Hashable, Sendable {
 	// MARK: - Equatable
 
 	static public func ==(lhs: Article, rhs: Article) -> Bool {
-		return lhs.articleID == rhs.articleID && lhs.accountID == rhs.accountID && lhs.feedID == rhs.feedID && lhs.uniqueID == rhs.uniqueID && lhs.title == rhs.title && lhs.contentHTML == rhs.contentHTML && lhs.contentText == rhs.contentText && lhs.rawLink == rhs.rawLink && lhs.rawExternalLink == rhs.rawExternalLink && lhs.summary == rhs.summary && lhs.rawImageLink == rhs.rawImageLink && lhs.datePublished == rhs.datePublished && lhs.dateModified == rhs.dateModified && lhs.authors == rhs.authors
+		return lhs.articleID == rhs.articleID && lhs.accountID == rhs.accountID && lhs.feedID == rhs.feedID && lhs.uniqueID == rhs.uniqueID && lhs.title == rhs.title && lhs.contentHTML == rhs.contentHTML && lhs.contentText == rhs.contentText && lhs.rawLink == rhs.rawLink && lhs.rawExternalLink == rhs.rawExternalLink && lhs.summary == rhs.summary && lhs.rawImageLink == rhs.rawImageLink && lhs.datePublished == rhs.datePublished && lhs.dateModified == rhs.dateModified && lhs.authors == rhs.authors && lhs.tags == rhs.tags
 	}
 }
 

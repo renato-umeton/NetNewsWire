@@ -78,6 +78,26 @@ import Articles
 		}
 	}
 
+	/// 0 = none (disabled), 1 = include (show only matching), 2 = exclude (hide matching)
+	var categoryFilterType: Int = 0 {
+		didSet {
+			if categoryFilterType != oldValue {
+				database.setInt(categoryFilterType, for: feedURL, column: .categoryFilterType)
+				postSettingDidChange(.categoryFilterType)
+			}
+		}
+	}
+
+	/// Comma-separated list of category terms to filter on.
+	var categoryFilterTerms: String? {
+		didSet {
+			if categoryFilterTerms != oldValue {
+				database.setString(categoryFilterTerms, for: feedURL, column: .categoryFilterTerms)
+				postSettingDidChange(.categoryFilterTerms)
+			}
+		}
+	}
+
 	var authors: [Author]? {
 		didSet {
 			if authors != oldValue {
@@ -161,6 +181,8 @@ import Articles
 		self.contentHash = row.contentHash
 		self.newArticleNotificationsEnabled = row.newArticleNotificationsEnabled
 		self.readerViewAlwaysEnabled = row.readerViewAlwaysEnabled
+		self.categoryFilterType = row.categoryFilterType
+		self.categoryFilterTerms = row.categoryFilterTerms
 		self.authors = row.authors
 		self.conditionalGetInfo = row.conditionalGetInfo
 		self.conditionalGetInfoDate = row.conditionalGetInfoDate
